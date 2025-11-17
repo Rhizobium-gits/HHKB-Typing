@@ -349,33 +349,106 @@
     </div>
 
     <script>
-        // 単語リスト（難易度別）
+        // 単語リスト（難易度別） - 全キーをカバー
         const wordLists = {
             easy: [
+                // 母音
                 'a', 'i', 'u', 'e', 'o',
+                // か行
                 'ka', 'ki', 'ku', 'ke', 'ko',
+                // が行
+                'ga', 'gi', 'gu', 'ge', 'go',
+                // さ行
                 'sa', 'si', 'su', 'se', 'so',
+                // ざ行
+                'za', 'zi', 'zu', 'ze', 'zo',
+                // た行
                 'ta', 'ti', 'tu', 'te', 'to',
+                // だ行
+                'da', 'di', 'du', 'de', 'do',
+                // な行
                 'na', 'ni', 'nu', 'ne', 'no',
+                // は行
                 'ha', 'hi', 'hu', 'he', 'ho',
+                // ば行
+                'ba', 'bi', 'bu', 'be', 'bo',
+                // ぱ行
+                'pa', 'pi', 'pu', 'pe', 'po',
+                // ま行
                 'ma', 'mi', 'mu', 'me', 'mo',
+                // や行
                 'ya', 'yu', 'yo',
+                // ら行
                 'ra', 'ri', 'ru', 're', 'ro',
-                'wa', 'wo', 'nn'
+                // わ行
+                'wa', 'wo', 'nn',
+                // 拗音
+                'kya', 'kyu', 'kyo', 'sha', 'shu', 'sho',
+                'cha', 'chu', 'cho', 'nya', 'nyu', 'nyo',
+                'hya', 'hyu', 'hyo', 'mya', 'myu', 'myo',
+                'rya', 'ryu', 'ryo', 'gya', 'gyu', 'gyo',
+                'ja', 'ju', 'jo', 'bya', 'byu', 'byo',
+                'pya', 'pyu', 'pyo'
             ],
             normal: [
-                'neko', 'inu', 'sora', 'umi', 'kaze',
-                'hana', 'yama', 'kawa', 'mori', 'hoshi',
-                'tsuki', 'kumo', 'ame', 'yuki', 'niwa',
-                'michi', 'ishi', 'kigi', 'mizu', 'hi',
-                'sakura', 'momiji', 'tsubasa', 'hikari', 'yume'
+                // 動物
+                'neko', 'inu', 'tori', 'sakana', 'zou', 'kirin', 'saru', 'usagi',
+                'kuma', 'kitsune', 'tanuki', 'shika', 'buta', 'ushi', 'uma',
+                // 自然
+                'sora', 'umi', 'kaze', 'yama', 'kawa', 'mori', 'hoshi', 'tsuki',
+                'kumo', 'ame', 'yuki', 'hana', 'ki', 'kusa', 'ishi', 'mizu',
+                'hi', 'kage', 'niji', 'taiyou',
+                // 季節・時間
+                'haru', 'natsu', 'aki', 'fuyu', 'asa', 'hiru', 'yoru', 'yoake',
+                'yuugata', 'mayonaka',
+                // 色
+                'aka', 'ao', 'ki', 'midori', 'shiro', 'kuro', 'murasaki',
+                'pinku', 'orenji', 'chairo',
+                // 場所
+                'ie', 'heya', 'niwa', 'michi', 'mura', 'machi', 'eki', 'kouen',
+                'gakkou', 'toshokan', 'byouin',
+                // 食べ物
+                'gohan', 'pan', 'niku', 'yasai', 'kudamono', 'mikan', 'ringo',
+                'momo', 'sakuranbo', 'budou', 'ichigo',
+                // 感情・状態
+                'shiawase', 'kanashii', 'tanoshii', 'ureshii', 'sabishii',
+                'kowai', 'yasashii', 'tsuyoi', 'yowai',
+                // その他
+                'hikari', 'kage', 'oto', 'koe', 'kotoba', 'namae', 'kokoro',
+                'chikara', 'inochi', 'yume', 'omoi', 'negai'
             ],
             hard: [
-                'konnichiwa', 'arigatou', 'ganbatte', 'otsukare',
-                'subarashii', 'tanoshii', 'ureshii', 'kanashii',
-                'programming', 'keyboard', 'computer', 'algorithm',
-                'javascript', 'python', 'typescript', 'developer',
-                'shiawase', 'kireina', 'atsui', 'samui', 'muzukashii'
+                // 日本語の言葉
+                'konnichiwa', 'arigatou', 'ganbatte', 'otsukare', 'subarashii',
+                'tanoshikatta', 'ureshikatta', 'kanashikatta', 'kowakatta',
+                'muzukashii', 'yasashikatta', 'oishikatta', 'atarashii',
+                'furukatta', 'atsukatta', 'samukatta', 'suzushii', 'atatakai',
+                // プログラミング用語
+                'programming', 'javascript', 'typescript', 'python', 'algorithm',
+                'function', 'variable', 'constant', 'array', 'object', 'string',
+                'number', 'boolean', 'undefined', 'null', 'class', 'interface',
+                'async', 'await', 'promise', 'callback', 'method', 'property',
+                'parameter', 'argument', 'return', 'import', 'export', 'module',
+                'component', 'state', 'props', 'render', 'lifecycle',
+                // コンピュータ用語
+                'computer', 'keyboard', 'mouse', 'display', 'monitor', 'screen',
+                'processor', 'memory', 'storage', 'database', 'network', 'server',
+                'client', 'browser', 'application', 'software', 'hardware',
+                'internet', 'website', 'email', 'download', 'upload',
+                // 英単語（よく使う）
+                'hello', 'world', 'welcome', 'thank', 'please', 'sorry',
+                'excuse', 'question', 'answer', 'problem', 'solution',
+                'example', 'document', 'project', 'version', 'update',
+                'create', 'delete', 'modify', 'search', 'replace',
+                // 記号を含む
+                'hello.js', 'index.html', 'style.css', 'app.tsx',
+                'config.json', 'package.json', 'README.md',
+                // 数字を含む
+                'test123', 'user001', 'item999', 'page01', 'version2',
+                // 複雑な組み合わせ
+                'konpyuutaa', 'puroguramu', 'intaanetto', 'deetabesu',
+                'fairu', 'forudaa', 'daunnroodo', 'appuroodo', 'sofutowea',
+                'haadowea', 'nettowaku', 'saabaa', 'kuraiento', 'burauzaa'
             ]
         };
 
