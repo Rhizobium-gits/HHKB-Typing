@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HHKB タイピング分析ゲーム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', 'Menlo', 'Monaco', monospace;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            border-radius: 4px;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 900px;
+            width: 90%;
+            border: 1px solid #ddd;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+        }
+
+        .game-area {
+            display: none;
+        }
+
+        .game-area.active {
+            display: block;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .word-display {
+            text-align: center;
+            font-size: 3em;
+            margin: 40px 0;
+            min-height: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 500;
+            font-family: 'Courier New', monospace;
+        }
+
+        .word-display .correct {
+            color: #888;
+        }
+
+        .word-display .current {
+            color: #000;
+            border-bottom: 3px solid #000;
+            padding-bottom: 2px;
+        }
+
+        .word-display .remaining {
+            color: #ccc;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #333;
+            transition: width 0.3s ease;
+        }
+
+        .start-screen, .result-screen {
+            text-align: center;
+        }
+
+        .start-screen h2, .result-screen h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+        }
+
+        .start-screen p {
+            margin-bottom: 30px;
+            color: #666;
+            line-height: 1.8;
+            font-size: 0.95em;
+        }
+
+        button {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 12px 36px;
+            font-size: 1em;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            font-family: 'Courier New', monospace;
+        }
+
+        button:hover {
+            background: #000;
+        }
+
+        button:active {
+            background: #555;
+        }
+
+        .key-stats {
+            margin-top: 30px;
+        }
+
+        .key-stats h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+        }
+
+        .key-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 8px;
+            margin-bottom: 30px;
+        }
+
+        .key-item {
+            background: #fafafa;
+            padding: 12px;
+            border-radius: 2px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+            transition: all 0.2s;
+        }
+
+        .key-item.weak {
+            background: #fff;
+            border-color: #000;
+            border-width: 2px;
+        }
+
+        .key-item.good {
+            background: #f5f5f5;
+            border-color: #888;
+        }
+
+        .key-char {
+            font-size: 1.8em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .key-accuracy {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .key-time {
+            font-size: 0.75em;
+            color: #999;
+        }
+
+        .weak-keys {
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 2px;
+            border: 2px solid #333;
+            margin-top: 20px;
+        }
+
+        .weak-keys h4 {
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .weak-keys p {
+            color: #555;
+            font-size: 1em;
+            line-height: 1.6;
+        }
+
+        .countdown {
+            font-size: 5em;
+            color: #333;
+            font-weight: 600;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .difficulty-select {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .difficulty-btn {
+            padding: 8px 20px;
+            font-size: 0.9em;
+            background: white;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .difficulty-btn.selected {
+            background: #333;
+            color: white;
+            border-color: #333;
+        }
+
+        .difficulty-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .difficulty-btn.selected:hover {
+            background: #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HHKB TYPING ANALYZER</h1>
+
+        <div class="start-screen active" id="startScreen">
+            <h2>WEAK KEY FINDER</h2>
+            <p>Type the displayed characters quickly and accurately for 30 seconds.<br>
+            After the game, you'll see a detailed analysis of your accuracy and response time for each key.</p>
+            
+            <div class="difficulty-select">
+                <button class="difficulty-btn selected" data-difficulty="easy">EASY</button>
+                <button class="difficulty-btn" data-difficulty="normal">NORMAL</button>
+                <button class="difficulty-btn" data-difficulty="hard">HARD</button>
+            </div>
+            
+            <button onclick="startGame()">START</button>
+        </div>
+
+        <div class="game-area" id="gameArea">
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">Time Left</div>
+                    <div class="stat-value" id="timer">30</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Score</div>
+                    <div class="stat-value" id="score">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Accuracy</div>
+                    <div class="stat-value" id="accuracy">100%</div>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar"></div>
+            </div>
+
+            <div class="word-display" id="wordDisplay"></div>
+        </div>
+
+        <div class="result-screen" id="resultScreen">
+            <h2>RESULTS</h2>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">Final Score</div>
+                    <div class="stat-value" id="finalScore">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Accuracy</div>
+                    <div class="stat-value" id="finalAccuracy">0%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Avg Speed</div>
+                    <div class="stat-value" id="avgSpeed">0ms</div>
+                </div>
+            </div>
+
+            <div class="key-stats">
+                <h3>KEY ANALYSIS</h3>
+                <div class="key-grid" id="keyGrid"></div>
+            </div>
+
+            <div class="weak-keys" id="weakKeys"></div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button onclick="location.reload()">TRY AGAIN</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 単語リスト（難易度別）
+        const wordLists = {
+            easy: [
+                'a', 'i', 'u', 'e', 'o',
+                'ka', 'ki', 'ku', 'ke', 'ko',
+                'sa', 'si', 'su', 'se', 'so',
+                'ta', 'ti', 'tu', 'te', 'to',
+                'na', 'ni', 'nu', 'ne', 'no',
+                'ha', 'hi', 'hu', 'he', 'ho',
+                'ma', 'mi', 'mu', 'me', 'mo',
+                'ya', 'yu', 'yo',
+                'ra', 'ri', 'ru', 're', 'ro',
+                'wa', 'wo', 'nn'
+            ],
+            normal: [
+                'neko', 'inu', 'sora', 'umi', 'kaze',
+                'hana', 'yama', 'kawa', 'mori', 'hoshi',
+                'tsuki', 'kumo', 'ame', 'yuki', 'niwa',
+                'michi', 'ishi', 'kigi', 'mizu', 'hi',
+                'sakura', 'momiji', 'tsubasa', 'hikari', 'yume'
+            ],
+            hard: [
+                'konnichiwa', 'arigatou', 'ganbatte', 'otsukare',
+                'subarashii', 'tanoshii', 'ureshii', 'kanashii',
+                'programming', 'keyboard', 'computer', 'algorithm',
+                'javascript', 'python', 'typescript', 'developer',
+                'shiawase', 'kireina', 'atsui', 'samui', 'muzukashii'
+            ]
+        };
+
+        let currentDifficulty = 'easy';
+        let gameActive = false;
+        let currentWord = '';
+        let currentIndex = 0;
+        let score = 0;
+        let totalKeystrokes = 0;
+        let correctKeystrokes = 0;
+        let timeLeft = 30;
+        let timerInterval;
+        let keyStats = {};
+        let wordStartTime;
+
+        // 難易度選択
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+                currentDifficulty = this.dataset.difficulty;
+            });
+        });
+
+        function startGame() {
+            document.getElementById('startScreen').classList.remove('active');
+            
+            // カウントダウン
+            let countdown = 3;
+            const wordDisplay = document.getElementById('wordDisplay');
+            wordDisplay.innerHTML = `<div class="countdown">${countdown}</div>`;
+            document.getElementById('gameArea').classList.add('active');
+            
+            const countInterval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    wordDisplay.innerHTML = `<div class="countdown">${countdown}</div>`;
+                } else {
+                    clearInterval(countInterval);
+                    initGame();
+                }
+            }, 1000);
+        }
+
+        function initGame() {
+            gameActive = true;
+            score = 0;
+            totalKeystrokes = 0;
+            correctKeystrokes = 0;
+            timeLeft = 30;
+            keyStats = {};
+            
+            nextWord();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').textContent = timeLeft;
+                
+                const progress = ((30 - timeLeft) / 30) * 100;
+                document.getElementById('progressBar').style.width = progress + '%';
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function nextWord() {
+            const words = wordLists[currentDifficulty];
+            currentWord = words[Math.floor(Math.random() * words.length)];
+            currentIndex = 0;
+            wordStartTime = Date.now();
+            updateWordDisplay();
+        }
+
+        function updateWordDisplay() {
+            const display = document.getElementById('wordDisplay');
+            const correct = currentWord.slice(0, currentIndex);
+            const current = currentWord[currentIndex] || '';
+            const remaining = currentWord.slice(currentIndex + 1);
+            
+            display.innerHTML = `
+                <span class="correct">${correct}</span><span class="current">${current}</span><span class="remaining">${remaining}</span>
+            `;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+            
+            const key = e.key.toLowerCase();
+            const expectedKey = currentWord[currentIndex];
+            
+            // 特殊キーは無視
+            if (key.length > 1 && key !== 'backspace') return;
+            
+            totalKeystrokes++;
+            
+            // キーの統計を初期化
+            if (!keyStats[expectedKey]) {
+                keyStats[expectedKey] = {
+                    attempts: 0,
+                    correct: 0,
+                    times: []
+                };
+            }
+            
+            keyStats[expectedKey].attempts++;
+            
+            if (key === expectedKey) {
+                correctKeystrokes++;
+                keyStats[expectedKey].correct++;
+                
+                const responseTime = Date.now() - wordStartTime;
+                keyStats[expectedKey].times.push(responseTime);
+                
+                currentIndex++;
+                
+                if (currentIndex >= currentWord.length) {
+                    score += currentWord.length * 10;
+                    document.getElementById('score').textContent = score;
+                    nextWord();
+                } else {
+                    wordStartTime = Date.now();
+                    updateWordDisplay();
+                }
+            }
+            
+            updateAccuracy();
+        });
+
+        function updateAccuracy() {
+            const accuracy = totalKeystrokes > 0 
+                ? Math.round((correctKeystrokes / totalKeystrokes) * 100) 
+                : 100;
+            document.getElementById('accuracy').textContent = accuracy + '%';
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            
+            document.getElementById('gameArea').classList.remove('active');
+            showResults();
+        }
+
+        function showResults() {
+            const finalAccuracy = totalKeystrokes > 0 
+                ? Math.round((correctKeystrokes / totalKeystrokes) * 100) 
+                : 100;
+            
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalAccuracy').textContent = finalAccuracy + '%';
+            
+            // 平均速度計算
+            let totalTime = 0;
+            let totalResponses = 0;
+            Object.values(keyStats).forEach(stat => {
+                totalTime += stat.times.reduce((a, b) => a + b, 0);
+                totalResponses += stat.times.length;
+            });
+            const avgSpeed = totalResponses > 0 ? Math.round(totalTime / totalResponses) : 0;
+            document.getElementById('avgSpeed').textContent = avgSpeed + 'ms';
+            
+            // キーごとの統計表示
+            displayKeyStats();
+            
+            document.getElementById('resultScreen').style.display = 'block';
+        }
+
+        function displayKeyStats() {
+            const keyGrid = document.getElementById('keyGrid');
+            keyGrid.innerHTML = '';
+            
+            const sortedKeys = Object.entries(keyStats)
+                .sort((a, b) => {
+                    const accuracyA = a[1].correct / a[1].attempts;
+                    const accuracyB = b[1].correct / b[1].attempts;
+                    return accuracyA - accuracyB;
+                });
+            
+            const weakKeys = [];
+            
+            sortedKeys.forEach(([key, stats]) => {
+                const accuracy = Math.round((stats.correct / stats.attempts) * 100);
+                const avgTime = stats.times.length > 0 
+                    ? Math.round(stats.times.reduce((a, b) => a + b, 0) / stats.times.length) 
+                    : 0;
+                
+                const keyItem = document.createElement('div');
+                keyItem.className = 'key-item';
+                
+                if (accuracy < 70 || avgTime > 800) {
+                    keyItem.classList.add('weak');
+                    weakKeys.push({ key, accuracy, avgTime });
+                } else if (accuracy >= 90 && avgTime < 500) {
+                    keyItem.classList.add('good');
+                }
+                
+                keyItem.innerHTML = `
+                    <div class="key-char">${key}</div>
+                    <div class="key-accuracy">ACC: ${accuracy}%</div>
+                    <div class="key-time">AVG: ${avgTime}ms</div>
+                `;
+                
+                keyGrid.appendChild(keyItem);
+            });
+            
+            // 苦手なキーの表示
+            if (weakKeys.length > 0) {
+                const weakKeysDiv = document.getElementById('weakKeys');
+                const keyList = weakKeys.map(k => `「${k.key}」(${k.accuracy}%, ${k.avgTime}ms)`).join(', ');
+                weakKeysDiv.innerHTML = `
+                    <h4>KEYS THAT NEED PRACTICE</h4>
+                    <p>${keyList}</p>
+                    <p style="margin-top: 10px; font-size: 0.9em;">Focus on practicing these keys to improve your typing accuracy.</p>
+                `;
+                weakKeysDiv.style.display = 'block';
+            } else {
+                document.getElementById('weakKeys').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
