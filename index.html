@@ -286,6 +286,10 @@
             <p>Type the displayed characters quickly and accurately for 30 seconds.<br>
             After the game, you'll see a detailed analysis of your accuracy and response time for each key.</p>
             
+            <div id="playCountDisplay" style="margin-bottom: 20px; color: #666; font-size: 0.9em;">
+                <!-- プレイ回数が表示される -->
+            </div>
+            
             <div class="difficulty-select">
                 <button class="difficulty-btn selected" data-difficulty="easy">EASY</button>
                 <button class="difficulty-btn" data-difficulty="normal">NORMAL</button>
@@ -293,6 +297,13 @@
             </div>
             
             <button onclick="startGame()">START</button>
+            
+            <div id="resetButtonContainer" style="margin-top: 20px; display: none;">
+                <button onclick="if(confirm('累積データをリセットしますか？')) resetCumulativeData()" 
+                        style="background: #666; font-size: 0.85em; padding: 8px 20px;">
+                    RESET DATA
+                </button>
+            </div>
         </div>
 
         <div class="game-area" id="gameArea">
@@ -336,11 +347,18 @@
             </div>
 
             <div class="key-stats">
-                <h3>KEY ANALYSIS</h3>
+                <h3>THIS SESSION</h3>
                 <div class="key-grid" id="keyGrid"></div>
             </div>
 
             <div class="weak-keys" id="weakKeys"></div>
+
+            <div class="key-stats" id="cumulativeSection" style="display: none;">
+                <h3>CUMULATIVE DATA (ALL SESSIONS)</h3>
+                <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;" id="cumulativeInfo"></p>
+                <div class="key-grid" id="cumulativeKeyGrid"></div>
+                <div class="weak-keys" id="cumulativeWeakKeys"></div>
+            </div>
 
             <div style="text-align: center; margin-top: 30px;">
                 <button onclick="location.reload()">TRY AGAIN</button>
@@ -463,6 +481,57 @@
         let timerInterval;
         let keyStats = {};
         let wordStartTime;
+        let playCount = 0;
+
+        // 累積データの管理
+        function loadCumulativeData() {
+            const data = localStorage.getItem('hhkbTypingData');
+            if (data) {
+                return JSON.parse(data);
+            }
+            return {
+                totalPlays: 0,
+                keyData: {}
+            };
+        }
+
+        function saveCumulativeData(cumulativeData) {
+            localStorage.setItem('hhkbTypingData', JSON.stringify(cumulativeData));
+        }
+
+        function mergeToCumulativeData() {
+            const cumulativeData = loadCumulativeData();
+            cumulativeData.totalPlays++;
+
+            // 今回のデータを累積データにマージ
+            Object.keys(keyStats).forEach(key => {
+                if (!cumulativeData.keyData[key]) {
+                    cumulativeData.keyData[key] = {
+                        totalAttempts: 0,
+                        totalCorrect: 0,
+                        allTimes: []
+                    };
+                }
+                
+                cumulativeData.keyData[key].totalAttempts += keyStats[key].attempts;
+                cumulativeData.keyData[key].totalCorrect += keyStats[key].correct;
+                cumulativeData.keyData[key].allTimes.push(...keyStats[key].times);
+                
+                // 時間データが多すぎる場合は最新の100件のみ保持
+                if (cumulativeData.keyData[key].allTimes.length > 100) {
+                    cumulativeData.keyData[key].allTimes = 
+                        cumulativeData.keyData[key].allTimes.slice(-100);
+                }
+            });
+
+            saveCumulativeData(cumulativeData);
+            return cumulativeData;
+        }
+
+        function resetCumulativeData() {
+            localStorage.removeItem('hhkbTypingData');
+            location.reload();
+        }
 
         // 難易度選択
         document.querySelectorAll('.difficulty-btn').forEach(btn => {
@@ -471,6 +540,22 @@
                 this.classList.add('selected');
                 currentDifficulty = this.dataset.difficulty;
             });
+        });
+
+        // ページ読み込み時にプレイ回数を表示
+        window.addEventListener('DOMContentLoaded', function() {
+            const cumulativeData = loadCumulativeData();
+            const playCountDisplay = document.getElementById('playCountDisplay');
+            const resetButtonContainer = document.getElementById('resetButtonContainer');
+            
+            if (cumulativeData.totalPlays > 0) {
+                playCountDisplay.innerHTML = `Total plays: <strong>${cumulativeData.totalPlays}</strong> times`;
+                playCountDisplay.style.display = 'block';
+                resetButtonContainer.style.display = 'block';
+            } else {
+                playCountDisplay.style.display = 'none';
+                resetButtonContainer.style.display = 'none';
+            }
         });
 
         function startGame() {
@@ -612,8 +697,16 @@
             const avgSpeed = totalResponses > 0 ? Math.round(totalTime / totalResponses) : 0;
             document.getElementById('avgSpeed').textContent = avgSpeed + 'ms';
             
-            // キーごとの統計表示
+            // 今回のセッションのキー統計表示
             displayKeyStats();
+            
+            // 累積データに保存
+            const cumulativeData = mergeToCumulativeData();
+            
+            // 累積データの表示
+            if (cumulativeData.totalPlays >= 1) {
+                displayCumulativeStats(cumulativeData);
+            }
             
             document.getElementById('resultScreen').style.display = 'block';
         }
@@ -668,6 +761,75 @@
                 weakKeysDiv.style.display = 'block';
             } else {
                 document.getElementById('weakKeys').style.display = 'none';
+            }
+        }
+
+        function displayCumulativeStats(cumulativeData) {
+            document.getElementById('cumulativeSection').style.display = 'block';
+            document.getElementById('cumulativeInfo').textContent = 
+                `Based on ${cumulativeData.totalPlays} sessions`;
+            
+            const cumulativeKeyGrid = document.getElementById('cumulativeKeyGrid');
+            cumulativeKeyGrid.innerHTML = '';
+            
+            const sortedKeys = Object.entries(cumulativeData.keyData)
+                .filter(([key, stats]) => stats.totalAttempts > 0)
+                .sort((a, b) => {
+                    const accuracyA = a[1].totalCorrect / a[1].totalAttempts;
+                    const accuracyB = b[1].totalCorrect / b[1].totalAttempts;
+                    return accuracyA - accuracyB;
+                });
+            
+            const cumulativeWeakKeys = [];
+            
+            sortedKeys.forEach(([key, stats]) => {
+                const accuracy = Math.round((stats.totalCorrect / stats.totalAttempts) * 100);
+                const avgTime = stats.allTimes.length > 0 
+                    ? Math.round(stats.allTimes.reduce((a, b) => a + b, 0) / stats.allTimes.length) 
+                    : 0;
+                
+                const keyItem = document.createElement('div');
+                keyItem.className = 'key-item';
+                
+                if (accuracy < 70 || avgTime > 800) {
+                    keyItem.classList.add('weak');
+                    cumulativeWeakKeys.push({ key, accuracy, avgTime, attempts: stats.totalAttempts });
+                } else if (accuracy >= 90 && avgTime < 500) {
+                    keyItem.classList.add('good');
+                }
+                
+                keyItem.innerHTML = `
+                    <div class="key-char">${key}</div>
+                    <div class="key-accuracy">ACC: ${accuracy}%</div>
+                    <div class="key-time">AVG: ${avgTime}ms</div>
+                    <div style="font-size: 0.7em; color: #aaa; margin-top: 3px;">n=${stats.totalAttempts}</div>
+                `;
+                
+                cumulativeKeyGrid.appendChild(keyItem);
+            });
+            
+            // 累積データの苦手なキーの表示
+            if (cumulativeWeakKeys.length > 0) {
+                const cumulativeWeakKeysDiv = document.getElementById('cumulativeWeakKeys');
+                
+                // 試行回数でソート（より多く失敗しているキーを優先）
+                cumulativeWeakKeys.sort((a, b) => b.attempts - a.attempts);
+                
+                const keyList = cumulativeWeakKeys
+                    .slice(0, 10) // 上位10個まで表示
+                    .map(k => `「${k.key}」(${k.accuracy}%, ${k.avgTime}ms, n=${k.attempts})`)
+                    .join(', ');
+                
+                cumulativeWeakKeysDiv.innerHTML = `
+                    <h4>KEYS THAT NEED PRACTICE (OVERALL)</h4>
+                    <p>${keyList}</p>
+                    <p style="margin-top: 10px; font-size: 0.9em;">
+                        These keys show consistent weakness across all your sessions. Focus on practicing these keys.
+                    </p>
+                `;
+                cumulativeWeakKeysDiv.style.display = 'block';
+            } else {
+                document.getElementById('cumulativeWeakKeys').style.display = 'none';
             }
         }
     </script>
